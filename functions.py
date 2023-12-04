@@ -261,6 +261,11 @@ def get_ipca_data_avaliabe(month, year):
   except:
     return False
 
+def get_last_ipca_avaliable():
+    ipca_data = supabase.table("ipca_data").select("*").order('avaliable_date', desc=True).not_.is_('avaliable_date', 'null').limit(1).execute()
+    ipca_data = ipca_data.data[0]
+    return ipca_data
+
 def get_vna(selected_date):
   try:
     last_expec = get_last_ipca_expectation_avaliabe(selected_date.strftime("%d/%m/%Y"))
@@ -276,6 +281,7 @@ def get_vna(selected_date):
 
   ipca_avaliable = get_ipca_data_avaliabe(t1['month'], t1['year'])
   now = datetime.datetime.now()
+
 
   # CASO III - data selecionada > data que saiu o IPCA do último mês e Data selecionada < dia 15
   if selected_date.day < 15 and ipca_avaliable:
@@ -301,32 +307,24 @@ def get_vna(selected_date):
 
   # CASO I - Data selecionada >= dia de início de validade do primeiro IPCA e Não saiu o IPCA do próximo mês
   if validate_date:
-    if selected_date.date() >= validate_date and (not ipca_avaliable or (selected_date.month == validate_date.month and selected_date.year == validate_date.year)):
       t1 = get_t_minus_1_date(validate_date.strftime("%d/%m/%Y"))
       t2 = get_t_minus_2_date(validate_date.strftime("%d/%m/%Y"))
-      vna_minus_1 = calc_vna_past(t1['month'], t1['year'])
+      last_ipca = get_last_ipca_avaliable()
+      get_base_ipca = get_ipca_index_base()
+      vna_minus_1 = (last_ipca['index']/get_base_ipca)*1000
+      vna_minus_1 = truncate_float(vna_minus_1, 6)
       last_expec_ipca = last_expec.data[0]['projection']
-      start = datetime.date(int(validate_date.year), int(validate_date.month), 15)
+      start = datetime.datetime.strptime(last_ipca['avaliable_date'], "%Y-%m-%d")
+      start = datetime.date(int(start.year), int(start.month), 15)
       du1 = np.busday_count(start, selected_date.date(), holidays=holiday)
-      end = add_1_month(validate_date)
+      if selected_date.month == start.month:
+        end = add_1_month(selected_date)
+      else:
+        end = datetime.date(int(selected_date.year), int(selected_date.month), 15)
       du2 = np.busday_count(start, end, holidays=holiday)
       vna = vna_minus_1 * ((1 + (float(last_expec_ipca) * 0.01)) ** (du1/du2))
       vna = truncate_float(vna, 6)
       return vna
-    if ipca_avaliable:
-      ipca_data_avaliable = datetime.datetime.strptime(ipca_avaliable['avaliable_date'], "%Y-%m-%d")
-      if selected_date.date() >= validate_date and ipca_data_avaliable.date() > selected_date.date():
-        t1 = get_t_minus_1_date(validate_date.strftime("%d/%m/%Y"))
-        t2 = get_t_minus_2_date(validate_date.strftime("%d/%m/%Y"))
-        vna_minus_1 = calc_vna_past(t1['month'], t1['year'])
-        last_expec_ipca = last_expec.data[0]['projection']
-        start = datetime.date(int(validate_date.year), int(validate_date.month), 15)
-        du1 = np.busday_count(start, selected_date.date(), holidays=holiday)
-        end = add_1_month(validate_date)
-        du2 = np.busday_count(start, end, holidays=holiday)
-        vna = vna_minus_1 * ((1 + (float(last_expec_ipca) * 0.01)) ** (du1/du2))
-        vna = truncate_float(vna, 6)
-        return vna
 
 def get_pu_ltn(taxa, start_date, due_date):
   du = np.busday_count(start_date.date(), due_date.date(), holidays=holiday)
@@ -362,7 +360,6 @@ def get_fator_selic(selected_date):
 
 def get_vna_lft(selected_date):
   fator_selic = get_fator_selic(selected_date)
-  print(fator_selic)
   vna = 1000 * fator_selic
   return truncate_float(vna, 6)
 
