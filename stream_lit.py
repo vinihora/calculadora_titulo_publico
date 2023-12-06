@@ -1,7 +1,7 @@
 import streamlit as st
 from supabase import create_client, Client
 import datetime
-from functions import get_vna, get_pu, get_pu_ltn, get_tax_ltn, get_pu_ntnf, get_vna_lft, get_pu_lft, get_vna_igpm, get_pu_ntn_c, verify_busday
+from functions import get_vna, get_pu, get_pu_ltn, get_tax_ltn, get_pu_ntnf, get_vna_lft, get_pu_lft, get_vna_igpm, get_pu_ntn_c, verify_busday, calc_duration_no_cupon, calc_duration_ntnb, calc_duration_ntnc, calc_duration_ntnf
 
 # Conectando com o database
 url: str = "https://geghwzramcdyqmnziwwf.supabase.co"
@@ -88,8 +88,10 @@ with st.container():
 
             if press_button:
                 if select_tax == "TAXA":
+                    taxa = float(input_calc) * 0.01
                     vna = get_vna(selected_date)
-                    pu = get_pu(vna, selected_date, due_date, float(input_calc) * 0.01)
+                    pu = get_pu(vna, selected_date, due_date, taxa)
+                    duration = calc_duration_ntnb(selected_date, due_date, vna, pu, taxa)
 
                     st.markdown("""
                     <style>
@@ -108,6 +110,9 @@ with st.container():
 
                     st.markdown(f'<div class="big-font">PU</div>', unsafe_allow_html=True)
                     st.write(f'{pu}')
+
+                    st.markdown(f'<div class="big-font">DURATION</div>', unsafe_allow_html=True)
+                    st.write(f'{duration}')
 
                     
         
@@ -121,7 +126,9 @@ with st.container():
 
             if press_button:
                 if select_tax == "TAXA":
-                    pu = get_pu_ntnf(selected_date, due_date, float(input_calc) * 0.01)
+                    taxa = float(input_calc) * 0.01
+                    pu = get_pu_ntnf(selected_date, due_date, taxa)
+                    duration = calc_duration_ntnf(selected_date, due_date, pu, taxa)
 
                     st.markdown("""
                     <style>
@@ -141,6 +148,9 @@ with st.container():
                     st.markdown(f'<div class="big-font">PU</div>', unsafe_allow_html=True)
                     st.write(f'{pu}')
 
+                    st.markdown(f'<div class="big-font">DURATION</div>', unsafe_allow_html=True)
+                    st.write(f'{duration}')
+
         if index_type == "LFT" and selected_date:
             due_date_string = titulos[index_title]['due_date']
             due_date = datetime.datetime.strptime(due_date_string, "%Y-%m-%d")
@@ -153,6 +163,7 @@ with st.container():
                 if select_tax == "TAXA":
                     vna = get_vna_lft(selected_date)
                     pu = get_pu_lft(vna, selected_date, due_date, float(input_calc) * 0.01)
+                    duration = calc_duration_no_cupon(selected_date, due_date)
 
                     st.markdown("""
                     <style>
@@ -172,6 +183,9 @@ with st.container():
                     st.markdown(f'<div class="big-font">PU</div>', unsafe_allow_html=True)
                     st.write(f'{pu}')
 
+                    st.markdown(f'<div class="big-font">DURATION</div>', unsafe_allow_html=True)
+                    st.write(f'{duration}')
+
         if index_type == "LTN" and selected_date:
             due_date_string = titulos[index_title]['due_date']
             due_date = datetime.datetime.strptime(due_date_string, "%Y-%m-%d")
@@ -183,6 +197,7 @@ with st.container():
             if press_button:
                 if select_tax == "TAXA":
                     pu = get_pu_ltn(float(input_calc) * 0.01, selected_date, due_date)
+                    duration = calc_duration_no_cupon(selected_date, due_date)
 
                     st.markdown("""
                     <style>
@@ -202,8 +217,12 @@ with st.container():
                     st.markdown(f'<div class="big-font">PU</div>', unsafe_allow_html=True)
                     st.write(f'{pu}')
 
+                    st.markdown(f'<div class="big-font">DURATION</div>', unsafe_allow_html=True)
+                    st.write(f'{duration}')
+
                 elif select_tax == "PU":
                     taxa = get_tax_ltn(float(input_calc), selected_date, due_date)
+                    duration = calc_duration_no_cupon(selected_date, due_date)
 
                     st.markdown("""
                     <style>
@@ -223,6 +242,9 @@ with st.container():
                     st.markdown(f'<div class="big-font">PU</div>', unsafe_allow_html=True)
                     st.write(f'{input_calc}')
 
+                    st.markdown(f'<div class="big-font">DURATION</div>', unsafe_allow_html=True)
+                    st.write(f'{duration}')
+
         if index_type == "NTN-C" and selected_date:
             due_date_string = titulos[index_title]['due_date']
             due_date = datetime.datetime.strptime(due_date_string, "%Y-%m-%d")
@@ -233,8 +255,10 @@ with st.container():
 
             if press_button:
                 if select_tax == "TAXA":
+                    taxa = float(input_calc) * 0.01
                     vna = get_vna_igpm(selected_date)
-                    pu = get_pu_ntn_c(vna, selected_date, due_date, float(input_calc) * 0.01)
+                    pu = get_pu_ntn_c(vna, selected_date, due_date, taxa)
+                    duration = duration = calc_duration_ntnc(selected_date, due_date, vna, pu, taxa)
 
                     st.markdown("""
                     <style>
@@ -253,3 +277,6 @@ with st.container():
 
                     st.markdown(f'<div class="big-font">PU</div>', unsafe_allow_html=True)
                     st.write(f'{pu}')
+
+                    st.markdown(f'<div class="big-font">DURATION</div>', unsafe_allow_html=True)
+                    st.write(f'{duration}')

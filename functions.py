@@ -366,7 +366,7 @@ def get_vna_lft(selected_date):
 def get_pu_lft(vna, selected_date, due_date, taxa):
   taxa = taxa
   du_n = np.busday_count(selected_date.date(), due_date.date(), holidays=holiday)
-  pu = (1 / ((taxa + 1) ** (du_n/252))) * vna
+  pu = (1 / ((taxa + 1) ** ((du_n)/252))) * vna
   return truncate_float(pu, 6)
 
 def get_igpm_index_base():
@@ -466,3 +466,65 @@ def get_pu_ntn_c(vna, selected_date, due_date, taxa):
   pu = truncate_float(pu, 6)
   return pu
 
+def calc_duration_no_cupon(selected_date, due_date):
+  du = np.busday_count(selected_date.date(), due_date.date(), holidays=holiday)
+  duration = du/252
+  duration = truncate_float(duration, 6)
+  return duration
+
+def calc_duration_ntnb(selected_date, due_date, vna, pu, taxa):
+  verify_cupom_date = selected_date
+  sum_n = 0
+  for n_cupom in range(calc_n_cupons(selected_date,due_date)):
+    next_pay = calc_next_cupom_payment_day(verify_cupom_date, due_date.month)
+    verify_cupom_date = verify_next_busday(next_pay.strftime("%d/%m/%Y"))
+    if (verify_cupom_date <= due_date.date()):
+      du_i = np.busday_count(selected_date.date(), verify_cupom_date, holidays=holiday)
+      sum_n += (((1 + 0.06) ** 0.5) - 1) / ((1 + taxa) ** (du_i/252)) * du_i
+    else:
+      break
+  
+  du_n = np.busday_count(selected_date.date(), due_date.date(), holidays=holiday)
+  sum_n += (1/((1 + taxa) ** (du_n/252))) * du_n
+  sum_n = (sum_n * vna) / pu
+  duration = sum_n / 252
+  duration = truncate_float(duration, 6)
+  return duration
+
+def calc_duration_ntnc(selected_date, due_date, vna, pu, taxa):
+  verify_cupom_date = selected_date
+  sum_n = 0
+  for n_cupom in range(calc_n_cupons(selected_date,due_date)):
+    next_pay = calc_next_cupom_payment_day(verify_cupom_date, due_date.month)
+    verify_cupom_date = verify_next_busday(next_pay.strftime("%d/%m/%Y"))
+    if (verify_cupom_date <= due_date.date()):
+      du_i = np.busday_count(selected_date.date(), verify_cupom_date, holidays=holiday)
+      sum_n += (((1 + 0.06) ** 0.5) - 1) / ((1 + taxa) ** (du_i/252)) * du_i
+    else:
+      break
+  
+  du_n = np.busday_count(selected_date.date(), due_date.date(), holidays=holiday)
+  sum_n += (1/((1 + taxa) ** (du_n/252))) * du_n
+  sum_n = (sum_n * vna) / pu
+  duration = sum_n / 252
+  duration = truncate_float(duration, 6)
+  return duration
+
+def calc_duration_ntnf(selected_date, due_date, pu, taxa):
+  verify_cupom_date = selected_date
+  sum_n = 0
+  for n_cupom in range(calc_n_cupons(selected_date,due_date)):
+    next_pay = calc_next_cupom_payment_day(verify_cupom_date, due_date.month)
+    verify_cupom_date = verify_next_busday(next_pay.strftime("%d/%m/%Y"))
+    if (verify_cupom_date <= due_date.date()):
+      du_i = np.busday_count(selected_date.date(), verify_cupom_date, holidays=holiday)
+      sum_n += ((((1 + 0.1) ** 0.5) - 1) * 1000) / ((1 + taxa) ** (du_i/252)) * du_i
+    else:
+      break
+  
+  du_n = np.busday_count(selected_date.date(), due_date.date(), holidays=holiday)
+  sum_n += (1000/((1 + taxa) ** (du_n/252))) * du_n
+  sum_n = (sum_n) / pu
+  duration = sum_n / 252
+  duration = truncate_float(duration, 6)
+  return duration
